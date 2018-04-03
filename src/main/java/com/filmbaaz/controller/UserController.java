@@ -32,7 +32,7 @@ public class UserController {
 	
 	@PostMapping("/public/register")
 	@CrossOrigin
-	public JSONObject addUser(@RequestBody User user) throws ParseException
+	public JSONObject addUser(@Valid @RequestBody User user) throws ParseException
 	{
 		return userService.addUser(user);
 	}
@@ -53,21 +53,21 @@ public class UserController {
 	
 	@PostMapping("/public/sendVerificationMail")
 	@CrossOrigin
-	public JSONObject sendVerificationMail(@RequestBody User user) throws ParseException
+	public JSONObject sendVerificationMail(@Valid @RequestBody User user) throws ParseException
 	{
 		return userService.sendVerificationMail(user);
 	}
 	
 	@PostMapping("/public/verifyUser/{code}")
 	@CrossOrigin
-	public JSONObject verifyUser(@RequestBody User user, @PathVariable String code) throws ParseException
+	public JSONObject verifyUser(@Valid @RequestBody User user, @PathVariable String code) throws ParseException
 	{
 		return userService.verifyUser(user, code);
 	}
 	
 	@PostMapping("/public/delete")
 	@CrossOrigin 
-	public JSONObject verifyUser(@RequestBody User user) throws ParseException
+	public JSONObject verifyUser(@Valid @RequestBody User user) throws ParseException
 	{
 		return userService.deleteUser(user);
 	}
