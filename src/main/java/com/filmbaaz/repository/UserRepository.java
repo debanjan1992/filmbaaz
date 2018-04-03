@@ -8,5 +8,4 @@ import com.filmbaaz.model.User;
 @Repository
 public interface UserRepository extends JpaRepository<User, String> {
 
-	public User findUserByEmail(String email);
 }

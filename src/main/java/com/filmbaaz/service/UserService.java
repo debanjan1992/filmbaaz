@@ -1,5 +1,6 @@
 package com.filmbaaz.service;
 
+import java.util.Calendar;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,13 +26,21 @@ public class UserService {
 
 		JSONObject response = new JSONObject();
 		Optional<User> dbUser = userRepository.findById(user.getEmail());
-		if (dbUser != null) {
+		if (dbUser.isPresent()) {
 			if (dbUser.get().getPassword().equals(commonService.cryptWithMD5(user.getPassword()))) {
 				JSONParser parser = new JSONParser();
 				JSONObject params = (JSONObject) parser.parse(dbUser.get().getParams());
 				if (params.get("verified").equals("true")) {
 					response.put("success", true);
 					response.put("message", "success");
+					Calendar cal = Calendar.getInstance();
+					cal.add(Calendar.MINUTE, 10);
+					params.put("expiresAt", cal.getTimeInMillis());
+					dbUser.get().setParams(params.toString());
+					userRepository.save(dbUser.get());
+					dbUser.get().setPassword(null);
+					response.put("user", dbUser);
+
 				} else {
 					response.put("success", false);
 					response.put("message", "user is not verified");
@@ -42,13 +51,13 @@ public class UserService {
 			}
 		} else {
 			response.put("success", false);
-			response.put("message", "user does not exist");
+			response.put("message", "invalid user");
 		}
 		return response;
 	}
 
 	@SuppressWarnings("unchecked")
-	public JSONObject addUser(User user) {
+	public JSONObject addUser(User user) throws ParseException {
 		JSONObject response = new JSONObject();
 		JSONObject params = new JSONObject();
 		params.put("verified", "false");
@@ -56,9 +65,20 @@ public class UserService {
 		user.setIsAdmin(false);
 		user.setPassword(commonService.cryptWithMD5(user.getPassword()));
 		user.setParams(params.toString());
-		userRepository.save(user);
-		response.put("success", true);
-		response.put("message", "success");
+		if (!userRepository.existsById(user.getEmail())) {
+			userRepository.save(user);
+			JSONObject result = sendVerificationMail(user);
+			response.put("success", true);
+			String msg = "";
+			if (result.get("success").equals(false))
+				msg = "added user. error while sending verification email.";
+			else
+				msg = "added user successfully";
+			response.put("message", msg);
+		} else {
+			response.put("success", false);
+			response.put("message", "user already exists");
+		}
 		return response;
 	}
 
@@ -76,22 +96,34 @@ public class UserService {
 	@SuppressWarnings("unchecked")
 	public JSONObject getUser(String email) {
 		JSONObject response = new JSONObject();
-		response.put("success", true);
-		response.put("message", "success");
-		response.put("users", userRepository.findById(email));
+		Optional<User> dbUser = userRepository.findById(email);
+		if (dbUser.isPresent()) {
+			dbUser.get().setPassword(null);
+			response.put("success", true);
+			response.put("message", "success");
+			response.put("users", dbUser);
+		} else {
+			response.put("success", true);
+			response.put("message", "success");
+			response.put("users", null);
+		}
 		return response;
 	}
 
 	@SuppressWarnings("unchecked")
 	public JSONObject sendVerificationMail(User user) throws ParseException {
 		JSONObject response = new JSONObject();
-		response.put("success", true);
-		response.put("message", "success");
 		Optional<User> dbUser = userRepository.findById(user.getEmail());
-		if (dbUser != null) {
+		if (dbUser.isPresent()) {
 			JSONParser parser = new JSONParser();
 			JSONObject paramsObj = (JSONObject) parser.parse(dbUser.get().getParams());
 			if (paramsObj.get("verified").equals("false")) {
+
+				String code = (String) paramsObj.get("verificationCode");
+				String body = "Greetings " + dbUser.get().getName() + ",\n\n"
+						+ "Welcome to Filmbaaz. Please find below your verification code: \n\n" + code + "\n\n"
+						+ "Cheers,\nThe FilmBaaz Team";
+				commonService.sendMail(dbUser.get().getEmail(), "Verify your Filmbaaz account!", body);
 				response.put("success", true);
 				response.put("message", "verification mail sent");
 			} else {
@@ -109,24 +141,29 @@ public class UserService {
 	public JSONObject verifyUser(User user, String code) throws ParseException {
 
 		JSONObject response = new JSONObject();
-		User dbUser = userRepository.findUserByEmail(user.getEmail());
-		JSONParser parser = new JSONParser();
-		JSONObject paramsObj = (JSONObject) parser.parse(dbUser.getParams());
-		if (paramsObj.get("verified").equals("false")) {
-			if (paramsObj.get("verificationCode").equals(code.trim())) {
-				paramsObj.put("verified", "true");
-				paramsObj.remove("verificationCode");
-				dbUser.setParams(paramsObj.toString());
-				userRepository.save(dbUser);
-				response.put("success", true);
-				response.put("message", "user verified");
+		Optional<User> dbUser = userRepository.findById(user.getEmail());
+		if (dbUser.isPresent()) {
+			JSONParser parser = new JSONParser();
+			JSONObject paramsObj = (JSONObject) parser.parse(dbUser.get().getParams());
+			if (paramsObj.get("verified").equals("false")) {
+				if (paramsObj.get("verificationCode").equals(code.trim())) {
+					paramsObj.put("verified", "true");
+					paramsObj.remove("verificationCode");
+					dbUser.get().setParams(paramsObj.toString());
+					userRepository.save(dbUser.get());
+					response.put("success", true);
+					response.put("message", "user verified");
+				} else {
+					response.put("success", false);
+					response.put("message", "invalid verification code");
+				}
 			} else {
 				response.put("success", false);
-				response.put("message", "invalid verification code");
+				response.put("message", "user already verified");
 			}
 		} else {
 			response.put("success", false);
-			response.put("message", "user already verified");
+			response.put("message", "invalid user");
 		}
 
 		return response;
@@ -135,7 +172,7 @@ public class UserService {
 	@SuppressWarnings("unchecked")
 	public JSONObject deleteUser(User user) {
 		JSONObject response = new JSONObject();
-		if (userRepository.findById(user.getEmail()) != null) {
+		if (userRepository.findById(user.getEmail()).isPresent()) {
 			userRepository.delete(user);
 			response.put("success", true);
 			response.put("message", "user deleted");
