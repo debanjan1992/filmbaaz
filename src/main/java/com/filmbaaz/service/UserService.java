@@ -1,5 +1,6 @@
 package com.filmbaaz.service;
 
+import java.net.UnknownHostException;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Optional;
@@ -57,7 +58,7 @@ public class UserService {
 	}
 
 	@SuppressWarnings("unchecked")
-	public JSONObject addUser(User user) throws ParseException {
+	public JSONObject addUser(User user) throws ParseException, UnknownHostException {
 		JSONObject response = new JSONObject();
 		JSONObject params = new JSONObject();
 		params.put("verified", "false");
@@ -111,7 +112,7 @@ public class UserService {
 	}
 
 	@SuppressWarnings("unchecked")
-	public JSONObject sendVerificationMail(User user) throws ParseException {
+	public JSONObject sendVerificationMail(User user) throws ParseException, UnknownHostException {
 		JSONObject response = new JSONObject();
 		Optional<User> dbUser = userRepository.findById(user.getEmail());
 		if (dbUser.isPresent()) {
@@ -120,9 +121,11 @@ public class UserService {
 			if (paramsObj.get("verified").equals("false")) {
 
 				String code = (String) paramsObj.get("verificationCode");
-				String body = "Greetings " + dbUser.get().getName() + ",\n\n"
-						+ "Welcome to Filmbaaz. Please find below your verification code: \n\n" + code + "\n\n"
-						+ "Cheers,\nThe FilmBaaz Team";
+				String link = "http://" + commonService.getIPAddress() + ":8080/api/public/verifyUser/" + code + "/"
+						+ user.getEmail();
+				String body = "<body>Greetings " + dbUser.get().getName() + ",<br><br>"
+						+ "Welcome to Filmbaaz. Please verify your account by clicking on the below link: <br><br><a href=\""
+						+ link + "\">Verify</a><br><br>" + "Cheers,<br><strong>The FilmBaaz Team</strong></body>";
 				commonService.sendMail(dbUser.get().getEmail(), "Verify your Filmbaaz account!", body);
 				response.put("success", true);
 				response.put("message", "verification mail sent");
@@ -138,10 +141,10 @@ public class UserService {
 	}
 
 	@SuppressWarnings("unchecked")
-	public JSONObject verifyUser(User user, String code) throws ParseException {
+	public JSONObject verifyUser(String code, String email) throws ParseException {
 
 		JSONObject response = new JSONObject();
-		Optional<User> dbUser = userRepository.findById(user.getEmail());
+		Optional<User> dbUser = userRepository.findById(email);
 		if (dbUser.isPresent()) {
 			JSONParser parser = new JSONParser();
 			JSONObject paramsObj = (JSONObject) parser.parse(dbUser.get().getParams());

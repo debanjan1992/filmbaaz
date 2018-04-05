@@ -1,5 +1,7 @@
 package com.filmbaaz.service;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Properties;
@@ -40,7 +42,7 @@ public class CommonService {
 		String SALTCHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
 		StringBuilder salt = new StringBuilder();
 		Random rnd = new Random();
-		while (salt.length() < 18) { // length of the random string.
+		while (salt.length() < 40) { // length of the random string.
 			int index = (int) (rnd.nextFloat() * SALTCHARS.length());
 			salt.append(SALTCHARS.charAt(index));
 		}
@@ -48,10 +50,13 @@ public class CommonService {
 		return saltStr;
 
 	}
-
+	protected String getIPAddress() throws UnknownHostException {
+        InetAddress inetAddress = InetAddress.getLocalHost();
+        return inetAddress.getHostAddress();
+	}
 	protected void sendMail(String to, String subject, String body) {
-		final String username = "techiefolksx@gmail.com";
-		final String password = "deb_668511";
+		final String username = "";
+		final String password = "";
 
 		Properties props = new Properties();
 		props.put("mail.smtp.starttls.enable", "true");
@@ -71,7 +76,8 @@ public class CommonService {
 			message.setFrom(new InternetAddress("noreply@filmbaaz.com"));
 			message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
 			message.setSubject(subject);
-			message.setText(body);
+			message.setContent(body, "text/html; charset=utf-8");
+			//message.setText(body);
 
 			Transport.send(message);
 

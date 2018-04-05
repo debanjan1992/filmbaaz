@@ -1,5 +1,7 @@
 package com.filmbaaz.controller;
 
+import java.net.UnknownHostException;
+
 import javax.validation.Valid;
 
 import org.json.simple.JSONObject;
@@ -32,7 +34,7 @@ public class UserController {
 	
 	@PostMapping("/public/register")
 	@CrossOrigin
-	public JSONObject addUser(@Valid @RequestBody User user) throws ParseException
+	public JSONObject addUser(@Valid @RequestBody User user) throws ParseException, UnknownHostException
 	{
 		return userService.addUser(user);
 	}
@@ -53,16 +55,16 @@ public class UserController {
 	
 	@PostMapping("/public/sendVerificationMail")
 	@CrossOrigin
-	public JSONObject sendVerificationMail(@Valid @RequestBody User user) throws ParseException
+	public JSONObject sendVerificationMail(@Valid @RequestBody User user) throws ParseException, UnknownHostException
 	{
 		return userService.sendVerificationMail(user);
 	}
 	
-	@PostMapping("/public/verifyUser/{code}")
+	@GetMapping("/public/verifyUser/{code}/{email}")
 	@CrossOrigin
-	public JSONObject verifyUser(@Valid @RequestBody User user, @PathVariable String code) throws ParseException
+	public JSONObject verifyUser(@PathVariable String code, @PathVariable String email) throws ParseException
 	{
-		return userService.verifyUser(user, code);
+		return userService.verifyUser(code, email);
 	}
 	
 	@PostMapping("/public/delete")

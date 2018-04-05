@@ -1,4 +1,4 @@
-package com.debanjan.filmbaaz;
+package com.filmbaaz;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
